@@ -1,0 +1,18 @@
+name: sync-workflow-files
+
+on:
+  schedule:
+    - cron: "0 19 * * 0" # run at 4 AM JST on Sundays
+  workflow_dispatch:
+  pull_request: # tmp
+
+jobs:
+  sync-workflow-files:
+    uses: kenji-miyake/autoware-github-actions/.github/workflows/reusable-sync-files.yaml@main
+    with:
+      target-files: |
+        tier4/autoware-github-actions@main: .github/dependabot.yaml
+        tier4/autoware-github-actions@add-ci: .github/workflows/pre-commit.yaml
+    secrets:
+      APP_ID: ${{ secrets.AUTOWARE_SYNC_BOT_APP_ID }}
+      PRIVATE_KEY: ${{ secrets.AUTOWARE_SYNC_BOT_PRIVATE_KEY }}

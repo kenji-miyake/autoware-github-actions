@@ -1,0 +1,110 @@
+name: reusable-sync-files
+
+on:
+  workflow_call:
+    inputs:
+      target-files:
+        required: true
+        type: string
+      pr-base-branch:
+        required: false
+        type: string
+        default: "main"
+      pr-branch:
+        required: false
+        type: string
+        default: "sync-files"
+      pr-title:
+        required: false
+        type: string
+        default: "chore: sync files"
+      pr-committer:
+        required: false
+        type: string
+        default: "GitHub <noreply@github.com>"
+      pr-author:
+        required: false
+        type: string
+        default: "GitHub <noreply@github.com>"
+      pr-body:
+        required: false
+        type: string
+        default: ""
+      pr-labels:
+        required: false
+        type: string
+        default: ""
+    secrets:
+      APP_ID:
+        required: true
+      PRIVATE_KEY:
+        required: true
+
+jobs:
+  sync-files:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Generate token
+        id: generate-token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Sync files
+        run: |
+          # Convert multiline input to array
+          readarray -t -d $'\n' target_files < <(echo "${{ inputs.target-files }}")
+
+          # Fetch each file
+          for target_file in "${target_files[@]}"; do
+            # Ignore empty inputs
+            if [ -z "${target_file// }" ]; then
+              continue
+            fi
+
+            # Convert to URL
+            parsed=($(.github/convert-to-url.sh "$target_file"))
+            repository="${parsed[0]}"
+            version="${parsed[1]}"
+            file_path="${parsed[2]}"
+            target_url="https://raw.githubusercontent.com/$repository/$version/$file_path"
+
+            # Show results
+            echo "target_file: $target_file"
+            echo "repository: $repository"
+            echo "version: $version"
+            echo "file_path: $file_path"
+            echo "target_url: $target_url"
+
+            # Fetch file
+            curl -fsSL -o "$file_path" "$target_url" -H "Authorization: token ${{ steps.generate-token.outputs.token }}"
+          done
+
+      - name: Create PR
+        id: create_pr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          base: ${{ inputs.pr-base-branch }}
+          branch: ${{ inputs.pr-branch }}
+          title: "${{ inputs.pr-title }}"
+          commit-message: ${{ inputs.pr-title }}
+          committer: ${{ inputs.pr-committer }}
+          author: ${{ inputs.pr-author }}
+          body: ${{ inputs.pr-body }}
+          labels: ${{ inputs.pr-labels }}
+          signoff: true
+          delete-branch: true
+          draft: false
+
+      - name: Check outputs
+        run: |
+          echo "Pull Request Number - ${{ steps.create_pr.outputs.pull-request-number }}"
+          echo "Pull Request URL - ${{ steps.create_pr.outputs.pull-request-url }}"
