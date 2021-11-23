@@ -1,0 +1,10 @@
+name: pre-commit
+
+on:
+  pull_request:
+
+jobs:
+  pre-commit:
+    uses: tier4/autoware-github-actions/.github/workflows/reusable-pre-commit.yaml@main
+    with:
+      pre-commit-config: .pre-commit-config.yaml
