@@ -8,7 +8,7 @@ on:
 
 jobs:
   sync-workflow-files:
-    uses: kenji-miyake/autoware-github-actions/.github/workflows/reusable-sync-files.yaml@main
+    uses: kenji-miyake/autoware-github-actions/.github/workflows/reusable-sync-files.yaml@add-sync-workflow-files-yaml
     with:
       target-files: |
         tier4/autoware-github-actions@main: .github/dependabot.yaml
