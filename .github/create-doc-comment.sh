@@ -64,4 +64,3 @@ comment_body="${comment_body//$'\r'/'%0D'}"
 
 # Output
 echo ::set-output name=comment-body::"$(printf "%s\n" "${comment_body[@]}")"
-
