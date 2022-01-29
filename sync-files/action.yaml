@@ -111,7 +111,7 @@ runs:
 
     - name: Create PR
       id: create-pr
-      uses: peter-evans/create-pull-request@v3
+      uses: kenji-miyake/create-pull-request@fix-ambiguity-between-branch-and-path
       with:
         token: ${{ inputs.token }}
         base: ${{ inputs.pr-base }}
