@@ -25,7 +25,7 @@
         echo 222
       post-command: |
         echo 333
-        yq -i 'del(.repos[] | select(.hooks[].id == "shellcheck"))' {dest}
+        sd -f ms "[^\n]*shellcheck-py\n.*?\n\n" "" {dest}
         echo 444
     - source: .pre-commit-config-optional.yaml
     - source: .prettierignore
