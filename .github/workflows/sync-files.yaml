@@ -24,7 +24,7 @@ jobs:
           private_key: ${{ secrets.PRIVATE_KEY }}
 
       - name: Run sync-files
-        uses: autowarefoundation/autoware-github-actions/sync-files@v1
+        uses: autowarefoundation/autoware-github-actions/sync-files@update-sync-files
         with:
           token: ${{ steps.generate-token.outputs.token }}
           pr-labels: |

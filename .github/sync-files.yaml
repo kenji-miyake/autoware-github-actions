@@ -18,7 +18,33 @@
     - source: .github/workflows/sync-files.yaml
     - source: .markdown-link-check.json
     - source: .markdownlint.yaml
+    - source: .pre-commit-config.yaml
+      pre-command: |
+        echo 111
+        cat {dest}
+        echo 222
+      post-command: |
+        echo 333
+        yq -i 'del(.repos[] | select(.hooks[].id == "shellcheck"))' {dest}
+        echo 444
     - source: .pre-commit-config-optional.yaml
     - source: .prettierignore
     - source: .prettierrc.yaml
     - source: .yamllint.yaml
+    - source: README.md
+      pre-command: |
+        echo 555
+        title=$(cat {source} | head -n1)
+        echo "$title"
+        echo 666
+      post-command: |
+        echo 777
+        sed -i "s/Autoware/foo/g" {dest}
+        sed -i "s/^# .*/$title/g" {dest}
+        echo 888
+    - source: NOTICE
+      dest: foo.md
+      pre-command: |
+        echo 999
+        cat {dest}
+        echo 000
