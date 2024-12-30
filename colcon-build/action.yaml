@@ -11,10 +11,33 @@ inputs:
   build-depends-repos:
     description: ""
     required: false
+  cmake-build-type:
+    description: ""
+    required: false
+    default: Release
   token:
     description: ""
     required: false
     default: ${{ github.token }}
+  include-eol-distros:
+    description: ""
+    required: false
+  cache-key-element:
+    description: Will be part of the cache key
+    default: default
+    required: false
+  build-pre-command:
+    description: Will be prepended to the colcon build command. e.g. "nice -n 19" or "taskset --cpu-list 0-2"
+    required: false
+    default: nice -n 19
+  colcon-parallel-workers-flag:
+    description: Will be appended to the colcon build command to limit number of packages built in parallel. e.g. "--parallel-workers 3"
+    default: ""
+    required: false
+  makeflags:
+    description: Will be exported as MAKEFLAGS environment variable. e.g. "-j 4"
+    default: ""
+    required: false
 
 runs:
   using: composite
@@ -47,7 +70,11 @@ runs:
       run: |
         package_paths=$(colcon list -p --packages-above-and-dependencies ${{ inputs.target-packages }} --base-paths . dependency_ws)
         sudo apt-get -yqq update
-        rosdep update
+        if [ "${{ inputs.include-eol-distros }}" = "true" ]; then
+            rosdep update --include-eol-distros
+        else
+            rosdep update
+        fi
         DEBIAN_FRONTEND=noninteractive rosdep install -yqq --from-paths ${package_paths} --ignore-src --rosdistro ${{ inputs.rosdistro }}
       shell: bash
 
@@ -60,16 +87,26 @@ runs:
     - name: Build
       run: |
         . /opt/ros/${{ inputs.rosdistro }}/setup.sh
-        colcon build --event-handlers console_cohesion+ \
+        # Cannot use unshare inside a Docker container, so we just disable
+        # DNS lookups instead.
+        cat /etc/nsswitch.conf
+        sed -e 's#hosts:\(.*\)dns\(.*\)#hosts:\1\2#g' -i.bak /etc/nsswitch.conf
+        cat /etc/nsswitch.conf
+        MAKEFLAGS="${{ inputs.makeflags }}"
+        echo "MAKEFLAGS=$MAKEFLAGS"  # for debugging
+        ${{ inputs.build-pre-command }} colcon build ${{ inputs.colcon-parallel-workers-flag }} \
+          --event-handlers console_cohesion+ \
           --packages-above-and-dependencies ${{ inputs.target-packages }} \
-          --cmake-args -DCMAKE_BUILD_TYPE=Release \
+          --cmake-args -DCMAKE_BUILD_TYPE=${{ inputs.cmake-build-type }} \
           --mixin coverage-gcc coverage-pytest compile-commands
+        mv /etc/nsswitch.conf.bak /etc/nsswitch.conf
+        cat /etc/nsswitch.conf
       shell: bash
 
     - name: Cache build artifacts
-      uses: actions/cache@v3
+      uses: actions/cache/save@v4
       with:
         path: |
           ./build
           ./install
-        key: build-${{ inputs.rosdistro }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+        key: build-${{ runner.arch }}-${{ inputs.rosdistro }}-${{ inputs.cache-key-element }}-${{ inputs.cmake-build-type }}-${{ github.sha }}

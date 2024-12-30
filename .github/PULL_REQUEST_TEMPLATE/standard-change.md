@@ -4,7 +4,7 @@
 
 ## Related links
 
-<!-- Write the links related to this PR. -->
+<!-- Write the links related to this PR. Private links should be clearly marked as private, for example, '[FOO COMPANY INTERNAL LINK](https://example.com)'. -->
 
 ## Tests performed
 
@@ -13,6 +13,27 @@
 ## Notes for reviewers
 
 <!-- Write additional information if necessary. It should be written if there are related PRs that should be merged at the same time. -->
+
+## Interface changes
+
+<!-- Describe any changed interfaces, such as topics, services, or parameters. -->
+
+### ROS Topic Changes
+
+<!-- | Topic Name       | Type                | Direction | Update Description                                            | -->
+<!-- | ---------------- | ------------------- | --------- | ------------------------------------------------------------- | -->
+<!-- | `/example_topic` | `std_msgs/String`   | Subscribe | Description of what the topic is used for in the system       | -->
+<!-- | `/another_topic` | `sensor_msgs/Image` | Publish   | Also explain if it is added / modified / deleted with the PR | -->
+
+### ROS Parameter Changes
+
+<!-- | Parameter Name       | Default Value | Update Description                                  | -->
+<!-- | -------------------- | ------------- | --------------------------------------------------- | -->
+<!-- | `example_parameters` | `1.0`         | Describe the parameter and also explain the updates | -->
+
+## Effects on system behavior
+
+<!-- Describe how this PR affects the system behavior. -->
 
 ## Pre-review checklist for the PR author
 

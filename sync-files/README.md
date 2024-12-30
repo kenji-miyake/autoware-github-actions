@@ -3,16 +3,45 @@
 ## Description
 
 This action syncs files between repositories.  
-It uses [peter-evans/create-pull-request](https://github.com/peter-evans/create-pull-request/) for creating pull requests and [peter-evans/enable-pull-request-automerge](https://github.com/peter-evans/enable-pull-request-automerge) for enabling auto-merge.
+It uses [peter-evans/create-pull-request](https://github.com/peter-evans/create-pull-request/) for creating pull requests.
 
 Note that you need `workflow` permission for the token if you copy workflow files of GitHub Actions.
+
+## Initial setup (within `autowarefoundation` org)
+
+This action uses the <https://github.com/apps/awf-autoware-bot> app to create pull requests.
+
+### Secrets
+
+For this action to use this bot, it requires the following secrets:
+
+- `APP_ID`: The app ID of the bot.
+  - Can be found in [awf-autoware-bot App Settings](https://github.com/organizations/autowarefoundation/settings/apps/awf-autoware-bot) General, About section.
+- `PRIVATE_KEY`: The private key of the bot.
+  - Can be found/generated in [awf-autoware-bot App Settings](https://github.com/organizations/autowarefoundation/settings/apps/awf-autoware-bot) General, Private keys section.
+
+Then these secrets need to be set in the repository settings.
+
+- Target Repository GitHub Page, Settings, Secrets and variables, Actions, New repository secret, `APP_ID` and `PRIVATE_KEY`
+
+### App settings
+
+Also, you need to install the app to the target repository.
+
+- [awf-autoware-bot App Settings](https://github.com/organizations/autowarefoundation/settings/apps/awf-autoware-bot) Install App section, Repository access, Only select repositories, add the target repository.
+
+### Additional repository settings
+
+For this action to work properly, the following settings are required in the target repository.
+
+- Target Repository GitHub Page, Settings, General, Pull Requests, Allow auto-merge # Enable
 
 ## Usage
 
 ```yaml
 jobs:
   sync-files:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Generate token
         id: generate-token
@@ -57,6 +86,7 @@ The specifications are:
 | --------------------- | -------- | -------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | repository            | true     | -                                            | The target repository.                                                                   |
 | ref                   | false    | The default branch of the target repository. | The version of the target repository.                                                    |
+| source-dir            | false    | Not prefixed.                                | The prefix common to `files/source`. This does not apply to the default of `files/dest`. |
 | files/source          | true     | -                                            | The path to the file in the target repository.                                           |
 | files/dest            | false    | The same as `files/source`.                  | The path where to place the synced file in the base repository.                          |
 | files/replace         | false    | `true`                                       | Whether to replace the synced file if it already exists.                                 |

@@ -9,7 +9,7 @@ This action checks if the specified files exist.
 ```yaml
 jobs:
   check-file-existence:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check file existence
         id: check-file-existence
@@ -30,7 +30,7 @@ jobs:
 | Name      | Required | Description                                           |
 | --------- | -------- | ----------------------------------------------------- |
 | files     | true     | The file names to check the existence.                |
-| condition | true     | The `and` or `or` condition for file existence check. |
+| condition | false    | The `and` or `or` condition for file existence check. |
 
 ## Outputs
 

@@ -1,0 +1,13 @@
+name: json-schema-check
+description: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      run: pip install check-jsonschema colorama
+      shell: bash
+
+    - name: Validate schemas
+      run: python ${GITHUB_ACTION_PATH}/validate_json_schemas.py
+      shell: bash

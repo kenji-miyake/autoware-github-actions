@@ -10,7 +10,7 @@ As it is difficult to perfectly detect all miss spellings, it is recommended not
 ```yaml
 jobs:
   spell-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
@@ -19,14 +19,21 @@ jobs:
         uses: autowarefoundation/autoware-github-actions/spell-check@v1
         with:
           cspell-json-url: https://raw.githubusercontent.com/tier4/autoware-spell-check-dict/main/.cspell.json
+          local-cspell-json: .cspell.json
+          dict-packages: |
+            https://github.com/tier4/cspell-dicts
+          incremental-files-only: false
 ```
 
 ## Inputs
 
-| Name            | Required | Description                   |
-| --------------- | -------- | ----------------------------- |
-| cspell-json-url | true     | The URL to `.cspell.json`.    |
-| token           | false    | The token for `.cspell.json`. |
+| Name                   | Required | Description                                                      |
+| ---------------------- | -------- | ---------------------------------------------------------------- |
+| cspell-json-url        | true     | The URL to the remote `.cspell.json`.                            |
+| local-cspell-json      | false    | The path to the local `.cspell.json`.                            |
+| dict-packages          | false    | The dict packages names referenced in `.cspell.json`.            |
+| token                  | false    | The token for the remote `.cspell.json`.                         |
+| incremental-files-only | false    | Limit the files checked to the ones in the pull request or push. |
 
 ## Outputs
 

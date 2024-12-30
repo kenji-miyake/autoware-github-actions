@@ -9,7 +9,7 @@ This action generates the changelog using [git-cliff](https://github.com/orhun/g
 ```yaml
 jobs:
   generate-changelog:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
@@ -34,6 +34,7 @@ jobs:
 | git-cliff-args        | false    | The arguments for the `git-cliff` command.               |
 | git-cliff-config      | false    | The path to the `git-cliff` config file.                 |
 | trim-version-and-date | false    | Whether to trim the version and date from the changelog. |
+| save-json-output      | false    | Save the output contents to artifact in json format.     |
 
 ## Outputs
 

@@ -8,7 +8,7 @@ Note that you need to build target packages before running this action.
 ```yaml
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ros:galactic
     steps:
       - name: Check out repository
@@ -30,7 +30,7 @@ jobs:
 
   test:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ros:galactic
     strategy:
       matrix:
@@ -57,7 +57,6 @@ jobs:
           rosdistro: galactic
           target-packages: ${{ steps.get-modified-packages.outputs.modified-packages }}
           build-depends-repos: build_depends.repos
-          label-regex: ${{ matrix.test-label }}
 
       - name: Upload coverage to Codecov
         if: ${{ steps.test.outputs.coverage-report-files != '' }}
@@ -76,7 +75,6 @@ jobs:
 | rosdistro           | true     | ROS distro.                                         |
 | target-packages     | true     | The target packages to test.                        |
 | build-depends-repos | false    | The `.repos` file that includes build dependencies. |
-| label-regex         | false    | The regex pattern of test labels to be run.         |
 | token               | false    | The token for build dependencies.                   |
 
 ## Outputs

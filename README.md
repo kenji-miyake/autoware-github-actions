@@ -12,7 +12,6 @@ This workflow checks if a certain secret is set.
 
 ```yaml
 jobs:
-jobs:
   check-secret:
     uses: autowarefoundation/autoware-github-actions/.github/workflows/check-secret.yaml@v1
     secrets:
@@ -21,7 +20,7 @@ jobs:
   sync-files:
     needs: check-secret
     if: ${{ needs.check-secret.outputs.set == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Generate token
         id: generate-token
@@ -89,6 +88,7 @@ See the `README.md` in each directory.
 - [generate-changelog](./generate-changelog/README.md)
 - [get-modified-packages](./get-modified-packages/README.md)
 - [get-self-packages](./get-self-packages/README.md)
+- [json-schema-check](./json-schema-check/README.md)
 - [pre-commit](./pre-commit/README.md)
 - [register-autonomoustuff-repository](./register-autonomoustuff-repository/README.md)
 - [remove-exec-depend](./remove-exec-depend/README.md)
@@ -96,3 +96,4 @@ See the `README.md` in each directory.
 - [spell-check](./spell-check/README.md)
 - [sync-branches](./sync-branches/README.md)
 - [sync-files](./sync-files/README.md)
+- [update-codeowners-from-packages](./update-codeowners-from-packages/README.md)

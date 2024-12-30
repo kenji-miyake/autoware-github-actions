@@ -10,7 +10,7 @@ runs:
   using: composite
   steps:
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: 3.8
 
@@ -29,7 +29,7 @@ runs:
       id: get-docs-versions
       run: |
         echo "site_name: dummy" > mkdocs.yaml
-        echo ::set-output name=docs-versions::$(mike list | grep -oP "pr-\w+")
+        echo "docs-versions=$(mike list | grep -oP "pr-\w+" | tr '\n' ' ' | sed 's/\s*$//')" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Find closed docs versions
@@ -52,7 +52,7 @@ runs:
           fi
         done
 
-        echo ::set-output name=closed-docs-versions::"${closed_docs_versions[@]}"
+        echo "closed-docs-versions=${closed_docs_versions[@]}" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Set git config
@@ -68,6 +68,6 @@ runs:
           git fetch
 
           echo "Delete docs version: $closed_docs_version."
-          mike delete --push --rebase "$closed_docs_version"
+          mike delete --push "$closed_docs_version"
         done
       shell: bash

@@ -5,28 +5,41 @@ inputs:
   rosdistro:
     description: ""
     required: true
-  target-packages:
-    description: ""
-    required: true
   clang-tidy-config-url:
     description: ""
     required: true
+  clang-tidy-ignore-path:
+    description: ""
+    required: false
+    default: .clang-tidy-ignore
+  target-packages:
+    description: ""
+    required: true
+  target-files:
+    description: ""
+    required: false
   build-depends-repos:
     description: ""
     required: false
+  cmake-build-type:
+    description: ""
+    required: false
+    default: Release
   token:
     description: ""
     required: false
     default: ${{ github.token }}
+  include-eol-distros:
+    description: ""
+    required: false
+  cache-key-element:
+    description: Will be part of the cache key
+    default: default
+    required: false
 
 runs:
   using: composite
   steps:
-    - name: Show target files
-      run: |
-        echo "target packages: ${{ inputs.target-packages }}"
-      shell: bash
-
     - name: Install curl
       run: |
         sudo apt-get -yqq update
@@ -42,7 +55,7 @@ runs:
     - name: Install Clang-Tidy
       run: |
         sudo apt-get -yqq update
-        sudo apt-get -yqq install clang-tidy
+        sudo apt-get -yqq install clang-tidy libomp-dev
       shell: bash
 
     - name: Set git config
@@ -62,18 +75,22 @@ runs:
       run: |
         package_paths=$(colcon list -p --packages-above-and-dependencies ${{ inputs.target-packages }} --base-paths . dependency_ws)
         sudo apt-get -yqq update
-        rosdep update
+        if [ "${{ inputs.include-eol-distros }}" = "true" ]; then
+            rosdep update --include-eol-distros
+        else
+            rosdep update
+        fi
         DEBIAN_FRONTEND=noninteractive rosdep install -yqq --from-paths ${package_paths} --ignore-src --rosdistro ${{ inputs.rosdistro }}
       shell: bash
 
     - name: Restore build files from cache
       id: restore-build-files
-      uses: actions/cache@v3
+      uses: actions/cache/restore@v4
       with:
         path: |
           ./build
           ./install
-        key: build-${{ inputs.rosdistro }}-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}
+        key: build-${{ runner.arch }}-${{ inputs.rosdistro }}-${{ inputs.cache-key-element }}-${{ inputs.cmake-build-type }}-${{ github.sha }}
 
     - name: Build
       if: ${{ steps.restore-build-files.outputs.cache-hit != 'true' }}
@@ -81,7 +98,7 @@ runs:
         . /opt/ros/${{ inputs.rosdistro }}/setup.sh
         colcon build --event-handlers console_cohesion+ \
           --packages-up-to ${{ inputs.target-packages }} \
-          --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          --cmake-args -DCMAKE_BUILD_TYPE=${{ inputs.cmake-build-type }} -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       shell: bash
 
     - name: Retrieve .clang-tidy
@@ -93,28 +110,62 @@ runs:
     - name: Get target files
       id: get-target-files
       run: |
-        package_path=$(colcon list --paths-only --packages-select ${{ inputs.target-packages }})
-        target_files=$(find $package_path -name "*.cpp" -or -name "*.hpp")
-        echo ::set-output name=target-files::$target_files
+        if [ "${{ inputs.target-files }}" != "" ]; then
+          target_files="${{ inputs.target-files }}"
+        else
+          mapfile -t package_paths < <(colcon list --paths-only --packages-select ${{ inputs.target-packages }})
+          ignore_patterns=()
+          ignore_patterns+=( -not -path "*/test/*" )
+          if [ -f ${{ inputs.clang-tidy-ignore-path }} ]; then
+            while IFS= read -r pattern; do
+              ignore_patterns+=( -not -path "$pattern" )
+            done < .clang-tidy-ignore
+          fi
+          target_files=$(find "${package_paths[@]}" -name '*.cpp' "${ignore_patterns[@]}" | tr '\n' ' ')
+        fi
+        echo "target-files=$target_files" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Show target files
+      if: ${{ steps.get-target-files.outputs.target-files != '' }}
+      run: |
+        echo "Target files:"
+        for file in "${{ steps.get-target-files.outputs.target-files }}" ; do
+          echo $file
+        done
       shell: bash
 
     - name: Analyze
       if: ${{ steps.get-target-files.outputs.target-files != '' }}
       run: |
         mkdir /tmp/clang-tidy-result
-        clang-tidy -p build/ -export-fixes /tmp/clang-tidy-result/fixes.yaml ${{ steps.get-target-files.outputs.target-files }} || true
-      shell: bash
-
-    - name: Save PR metadata
-      if: ${{ steps.get-target-files.outputs.target-files != '' }}
-      run: |
+        run-clang-tidy -p build/ -export-fixes /tmp/clang-tidy-result/fixes.yaml -j $(nproc) ${{ steps.get-target-files.outputs.target-files }} > /tmp/clang-tidy-result/report.log && true
+        echo "exit_code=$?" >> $GITHUB_ENV
         echo "${{ github.event.number }}" > /tmp/clang-tidy-result/pr-id.txt
         echo "${{ github.event.pull_request.head.repo.full_name }}" > /tmp/clang-tidy-result/pr-head-repo.txt
         echo "${{ github.event.pull_request.head.ref }}" > /tmp/clang-tidy-result/pr-head-ref.txt
       shell: bash
 
-    - uses: actions/upload-artifact@v3
-      if: ${{ steps.get-target-files.outputs.target-files != '' }}
+    - name: Check if the report.log file exists
+      id: check-report-log-existence
+      uses: autowarefoundation/autoware-github-actions/check-file-existence@v1
+      with:
+        files: /tmp/clang-tidy-result/report.log
+
+    - name: Check if the fixes.yaml file exists
+      id: check-fixes-yaml-existence
+      uses: autowarefoundation/autoware-github-actions/check-file-existence@v1
+      with:
+        files: /tmp/clang-tidy-result/fixes.yaml
+
+    - name: Upload artifacts
+      if: ${{ steps.check-report-log-existence.outputs.exists == 'true' && steps.check-fixes-yaml-existence.outputs.exists == 'true' }}
+      uses: actions/upload-artifact@v4
       with:
         name: clang-tidy-result
         path: /tmp/clang-tidy-result/
+
+    - name: Mark the workflow as failed if clang-tidy find an error
+      if: ${{ env.exit_code != '0' }}
+      run: exit 1
+      shell: bash

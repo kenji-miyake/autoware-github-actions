@@ -8,7 +8,7 @@ This workflow depends on `colcon-build` action.
 ```yaml
 jobs:
   clang-tidy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ros:galactic
     needs: build-and-test
     steps:
@@ -26,8 +26,8 @@ jobs:
         uses: autowarefoundation/autoware-github-actions/clang-tidy@v1
         with:
           rosdistro: galactic
-          target-packages: ${{ steps.get-modified-packages.outputs.modified-packages }}
           clang-tidy-config-url: https://raw.githubusercontent.com/autowarefoundation/autoware/main/.clang-tidy
+          target-packages: ${{ steps.get-modified-packages.outputs.modified-packages }}
           build-depends-repos: build_depends.repos
 ```
 
@@ -36,9 +36,11 @@ jobs:
 | Name                  | Required | Description                                         |
 | --------------------- | -------- | --------------------------------------------------- |
 | rosdistro             | true     | The ROS distro.                                     |
-| target-packages       | true     | The target packages to analyse by Clang-Tidy.       |
 | clang-tidy-config-url | true     | The URL to `.clang-tidy`.                           |
+| target-packages       | true     | The target packages to analyze by Clang-Tidy.       |
+| target-files          | false    | The target files.                                   |
 | build-depends-repos   | false    | The `.repos` file that includes build dependencies. |
+| cmake-build-type      | false    | The value for `CMAKE_BUILD_TYPE`.                   |
 | token                 | false    | The token for build dependencies and `.clang-tidy`. |
 
 ## Outputs

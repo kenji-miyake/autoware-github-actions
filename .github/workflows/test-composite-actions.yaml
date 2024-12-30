@@ -8,16 +8,16 @@ on:
 
 jobs:
   test-register-autonomoustuff-repository:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ros:${{ matrix.rosdistro }}
     strategy:
       fail-fast: false
       matrix:
         rosdistro:
-          - galactic
+          - humble
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run register-autonomoustuff-repository
         uses: ./register-autonomoustuff-repository
@@ -34,16 +34,16 @@ jobs:
           rosdep resolve pacmod3_msgs
 
   test-clang-tidy-empty-target:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ros:${{ matrix.rosdistro }}
     strategy:
       fail-fast: false
       matrix:
         rosdistro:
-          - galactic
+          - humble
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run clang-tidy
         uses: ./clang-tidy
@@ -53,10 +53,10 @@ jobs:
           clang-tidy-config-url: https://raw.githubusercontent.com/autowarefoundation/autoware/main/.clang-tidy
 
   test-check-file-existence:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Create temporary files
         run: |
@@ -115,16 +115,16 @@ jobs:
           [[ "${{ steps.check-file-existence4.outputs.exists }}" == "true" ]]
 
   test-colcon-build-and-colcon-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ros:${{ matrix.rosdistro }}
     strategy:
       fail-fast: false
       matrix:
         rosdistro:
-          - galactic
+          - humble
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run colcon-build
         uses: ./colcon-build
@@ -139,17 +139,17 @@ jobs:
           target-packages: empty_target_cmake empty_target_python
 
   test-get-self-packages-and-get-modified-packages:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container: ${{ matrix.container }}
     strategy:
       fail-fast: false
       matrix:
         container:
-          - ros:galactic
-          - ghcr.io/autowarefoundation/autoware-universe:latest
+          - ros:humble
+          - ghcr.io/autowarefoundation/autoware:latest-universe-devel
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 

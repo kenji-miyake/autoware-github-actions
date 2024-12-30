@@ -5,21 +5,59 @@ inputs:
   cspell-json-url:
     description: ""
     required: true
+  local-cspell-json:
+    description: ""
+    required: false
+    default: .cspell.json
+  dict-packages:
+    description: ""
+    required: false
+    default: |
+      https://github.com/tier4/autoware-spell-check-dict
+      https://github.com/tier4/cspell-dicts
   token:
     description: ""
     required: false
     default: ${{ github.token }}
+  incremental-files-only:
+    description: ""
+    required: false
+    default: "true"
 
 runs:
   using: composite
   steps:
-    - name: Retrieve spell check dictionary
+    - name: Install dict packages
       run: |
-        curl -fsSL -o .cspell.json ${{ inputs.cspell-json-url }} \
+        for package in $(IFS=" " echo "${{ inputs.dict-packages }}"); do
+          echo "Install $package."
+          npm install $package
+        done
+      shell: bash
+
+    - name: Retrieve remote dictionary
+      run: |
+        curl -fsSL -o remote.cspell.json ${{ inputs.cspell-json-url }} \
           -H "Authorization: token ${{ inputs.token }}"
       shell: bash
 
+    - name: Prepare local dictionary
+      run: |
+        if [ -f "${{ inputs.local-cspell-json }}" ]; then
+          cp ${{ inputs.local-cspell-json }} local.cspell.json || true
+        else
+          echo "No local dictionary found."
+          echo "{}" > local.cspell.json
+        fi
+      shell: bash
+
+    - name: Create combined dictionary
+      run: |
+        echo '{ "import": ["./remote.cspell.json", "./local.cspell.json"] }' > .cspell.json
+      shell: bash
+
     - name: Run spell check
-      uses: streetsidesoftware/cspell-action@v2
+      uses: streetsidesoftware/cspell-action@v6
       with:
         config: .cspell.json
+        incremental_files_only: ${{ inputs.incremental-files-only }}

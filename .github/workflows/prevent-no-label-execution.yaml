@@ -12,7 +12,7 @@ on:
 
 jobs:
   prevent-no-label-execution:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       run: ${{ steps.prevent-no-label-execution.outputs.run }}
     steps:
@@ -46,10 +46,10 @@ jobs:
             return
           }
 
-          echo ::set-output name=run::"$(check)"
+          echo "run=$(check)" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: Show result
         run: |
-          echo "run: ${{ steps.prevent-no-label-execution.outputs.run }}"
+          echo "::notice:: ${{ steps.prevent-no-label-execution.outputs.run }}"
         shell: bash

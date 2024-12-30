@@ -3,7 +3,7 @@
 ## Description
 
 This action syncs branches including remote repositories.  
-It uses [peter-evans/create-pull-request](https://github.com/peter-evans/create-pull-request/) for creating pull requests and [peter-evans/enable-pull-request-automerge](https://github.com/peter-evans/enable-pull-request-automerge) for enabling auto-merge.
+It uses [peter-evans/create-pull-request](https://github.com/peter-evans/create-pull-request/) for creating pull requests.
 
 Note that you need `workflow` permission for the token if you copy workflow files of GitHub Actions.
 
@@ -12,7 +12,7 @@ Note that you need `workflow` permission for the token if you copy workflow file
 ```yaml
 jobs:
   sync-branches:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Generate token
         id: generate-token

@@ -10,10 +10,10 @@ on:
 
 jobs:
   semantic-pull-request:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Validate PR title
-        uses: amannn/action-semantic-pull-request@v4
+        uses: amannn/action-semantic-pull-request@v5
         with:
           # Comply with https://github.com/commitizen/conventional-commit-types/blob/c3a9be4c73e47f2e8197de775f41d981701407fb/index.json
           types: |
@@ -29,8 +29,6 @@ jobs:
             chore
             revert
           subjectPattern: ^(?![A-Z]).+$
-          validateSingleCommit: true
-          validateSingleCommitMatchesPrTitle: true
           ignoreLabels: |
             bot
             ignore-semantic-pull-request

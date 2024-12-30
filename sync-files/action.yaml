@@ -46,7 +46,7 @@ runs:
   using: composite
   steps:
     - name: Check out repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set git config
       uses: autowarefoundation/autoware-github-actions/set-git-config@v1
@@ -54,7 +54,9 @@ runs:
         token: ${{ inputs.token }}
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.8
 
     - name: Set up yq
       uses: chrisdickinson/setup-yq@v1.0.1
@@ -62,7 +64,7 @@ runs:
         yq-version: v4.25.1
 
     - name: Set up sd
-      uses: kenji-miyake/setup-sd@v1
+      uses: kenji-miyake/setup-sd@v2
 
     - name: Parse config
       run: |
@@ -89,10 +91,10 @@ runs:
           fi
 
           rm -rf /tmp/repository
-          git clone "$repository" /tmp/repository ${git_options[@]}
+          git clone --depth 1 "$repository" /tmp/repository ${git_options[@]}
 
-          for source_file in $(yq ".files[].source" /tmp/repo-config.yaml); do
-            yq ".files[] | select(.source == \"$source_file\")" /tmp/repo-config.yaml > /tmp/file-config.yaml
+          for file_config in $(yq ".files[].dest" /tmp/repo-config.yaml); do
+            yq ".files[] | select(.dest == \"$file_config\")" /tmp/repo-config.yaml > /tmp/file-config.yaml
 
             source_path=$(yq ".source" /tmp/file-config.yaml)
             dest_path=$(yq ".dest" /tmp/file-config.yaml)
@@ -101,7 +103,10 @@ runs:
             pre_commands=$(yq ".pre-commands" /tmp/file-config.yaml)
             post_commands=$(yq ".post-commands" /tmp/file-config.yaml)
 
-            modified_source_path="/tmp/repository/$source_path"
+            full_source_path="/tmp/repository/$source_path"
+
+            modified_source_path=$(mktemp)
+            cp "$full_source_path" "$modified_source_path"
 
             pre_commands=$(echo "$pre_commands" | sed "s|{source}|$modified_source_path|g" | sed "s|{dest}|$dest_path|g")
             post_commands=$(echo "$post_commands" | sed "s|{source}|$modified_source_path|g" | sed "s|{dest}|$dest_path|g")
@@ -115,25 +120,25 @@ runs:
                 continue
               fi
 
+              eval "$pre_commands"
+
               if ! [ -f "$dest_path" ]; then
-                echo "Newly copy $source_path to $dest_path."
+                echo "Newly copy $modified_source_path to $dest_path."
                 mkdir -p $(dirname "$dest_path")
 
-                eval "$pre_commands" || true
                 cp "$modified_source_path" "$dest_path"
                 eval "$post_commands"
 
                 yq -i ".added += [\"$dest_path\"]" /tmp/result.yaml
               elif ! diff "$modified_source_path" "$dest_path"; then
-                echo "Copy $source_path to $dest_path."
+                echo "Copy $modified_source_path to $dest_path."
 
-                eval "$pre_commands"
                 cp "$modified_source_path" "$dest_path"
                 eval "$post_commands"
 
                 yq -i ".changed += [\"$dest_path\"]" /tmp/result.yaml
               else
-                echo "$source_path and $dest_path are the same."
+                echo "$modified_source_path and $dest_path are the same."
                 yq -i ".not-changed += [\"$dest_path\"]" /tmp/result.yaml
               fi
             elif [ "$delete_orphaned" = "true" ]; then
@@ -176,20 +181,16 @@ runs:
         add-section "Deleted" "deleted"
         add-section "Not found" "not-found"
 
-        # Workaround for multiline strings
-        # https://github.community/t/set-output-truncates-multiline-strings/16852
-        body=$(printf "%s\n" "${body_lines[@]}")
-        body="${body//'%'/'%25'}"
-        body="${body//$'\n'/'%0A'}"
-        body="${body//$'\r'/'%0D'}"
-
-        # Output
-        echo ::set-output name=body::"$(printf "%s\n" "${body[@]}")"
+        # Output multiline strings: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
+        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+        echo "body<<$EOF" >> $GITHUB_OUTPUT
+        echo "$(printf "%s\n" "${body_lines[@]}")" >> $GITHUB_OUTPUT
+        echo "$EOF" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Create PR
       id: create-pr
-      uses: peter-evans/create-pull-request@v4
+      uses: peter-evans/create-pull-request@v6
       with:
         token: ${{ inputs.token }}
         base: ${{ inputs.pr-base }}
@@ -200,6 +201,7 @@ runs:
         labels: ${{ inputs.pr-labels }}
         assignees: ${{ inputs.pr-assignees }}
         reviewers: ${{ inputs.pr-reviewers }}
+        author: github-actions <github-actions@github.com>
         signoff: true
         delete-branch: true
 
@@ -211,8 +213,7 @@ runs:
 
     - name: Enable auto-merge
       if: ${{ inputs.auto-merge-method != '' && steps.create-pr.outputs.pull-request-operation == 'created' }}
-      uses: peter-evans/enable-pull-request-automerge@v2
-      with:
-        token: ${{ inputs.token }}
-        pull-request-number: ${{ steps.create-pr.outputs.pull-request-number }}
-        merge-method: ${{ inputs.auto-merge-method }}
+      run: gh pr merge --${{ inputs.auto-merge-method }} --auto "${{ steps.create-pr.outputs.pull-request-number }}"
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
